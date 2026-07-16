@@ -18,6 +18,7 @@ phases:
     commands:
       - echo "Cleaning old package..."
       - rm -f function.zip
+      - mkdir -p node_modules
       - echo "Creating deployment package..."
       - zip -r function.zip index.mjs package.json package-lock.json node_modules
       - echo "Verifying zip contents..."
