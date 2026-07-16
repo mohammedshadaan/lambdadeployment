@@ -19,11 +19,9 @@ phases:
       - echo "Cleaning old package..."
       - rm -f function.zip
       - mkdir -p node_modules
-      - echo "Creating deployment package..."
-      - zip -r function.zip index.mjs package.json package-lock.json node_modules
-      - echo "Verifying zip contents..."
-      - unzip -l function.zip
-      - echo "Uploading package to S3..."
+      - echo "Creating deployment package for S3 backup..."
+      - zip -r function.zip index.mjs package.json package-lock.json node_modules *.html *.css index.js customer-dashboards images partner-registration-forms start-flow styles
+      - echo "Uploading package backup to S3..."
       - aws s3 cp function.zip "s3://$S3_BUCKET/builds/function-$CODEBUILD_RESOLVED_SOURCE_VERSION.zip"
 
   post_build:
@@ -39,6 +37,17 @@ phases:
       - echo "Deployment completed successfully!"
 
 artifacts:
+  # List the raw files directly so CodePipeline packages them correctly at the root of the Lambda deployment
   files:
-    - function.zip
-  discard-paths: yes
+    - index.mjs
+    - package.json
+    - package-lock.json
+    - node_modules/**/*
+    - '*.html'
+    - '*.css'
+    - 'index.js'
+    - 'customer-dashboards/**/*'
+    - 'images/**/*'
+    - 'partner-registration-forms/**/*'
+    - 'start-flow/**/*'
+    - 'styles/**/*'
