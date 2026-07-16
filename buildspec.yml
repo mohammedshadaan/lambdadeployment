@@ -1,0 +1,43 @@
+version: 0.2
+
+env:
+  variables:
+    LAMBDA_FUNCTION_NAME: "test-lambda-function"
+    S3_BUCKET: "triggerlambda031225"
+    AWS_DEFAULT_REGION: "ap-southeast-2"
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 20
+    commands:
+      - echo "Installing production dependencies..."
+      - npm ci --omit=dev
+
+  build:
+    commands:
+      - echo "Cleaning old package..."
+      - rm -f function.zip
+      - echo "Creating deployment package..."
+      - zip -r function.zip index.mjs package.json package-lock.json node_modules
+      - echo "Verifying zip contents..."
+      - unzip -l function.zip
+      - echo "Uploading package to S3..."
+      - aws s3 cp function.zip "s3://$S3_BUCKET/builds/function-$CODEBUILD_RESOLVED_SOURCE_VERSION.zip"
+
+  post_build:
+    commands:
+      - echo "Deploying new code to Lambda from S3..."
+      - >
+        aws lambda update-function-code
+        --function-name "$LAMBDA_FUNCTION_NAME"
+        --s3-bucket "$S3_BUCKET"
+        --s3-key "builds/function-$CODEBUILD_RESOLVED_SOURCE_VERSION.zip"
+        --publish
+      - aws lambda wait function-updated --function-name "$LAMBDA_FUNCTION_NAME"
+      - echo "Deployment completed successfully!"
+
+artifacts:
+  files:
+    - function.zip
+  discard-paths: yes
